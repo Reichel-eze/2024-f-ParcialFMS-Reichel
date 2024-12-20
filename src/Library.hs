@@ -228,3 +228,91 @@ hardcore = cadena porMedioDeRimas `combinaDos` esdrujulas
 -- concentrar exclusivamente en los pares pasados (1,2 y 3,4), por lo tanto a los demas versos de la estrofa no los analizara
 -- Todo esto gracias a la evaluacion perezosa (lazy evaluation) que utiliza Haskell, simplemente evaluare los versos que sean
 -- necesarios para ver si cumplen con el patron simple y en su debido caso retornar True o False
+
+-- Puesta En Escena
+
+data PuestaEnEscena = UnaPuestaEnEscena {
+  publicoExaltado :: Bool,
+  potencia :: Number,
+  estrofa :: Estrofa,
+  artista :: String
+  --estilo :: Estilo
+}deriving(Show, Eq)
+
+subirPotencia :: Number -> PuestaEnEscena -> PuestaEnEscena
+subirPotencia valor puesta = puesta {potencia = potencia puesta + valor}
+
+aumentarPotenciaEnPorcentaje :: Number -> PuestaEnEscena -> PuestaEnEscena
+aumentarPotenciaEnPorcentaje porcentaje puesta = subirPotencia (porcentaje * potencia puesta / 100) puesta
+
+exaltarPublico :: Bool -> PuestaEnEscena -> PuestaEnEscena
+exaltarPublico exaltacion puesta = puesta {publicoExaltado = exaltacion} 
+
+-- En cada puesta en escena cada artista utiliza un estilo distinto, que altera la puesta en escena original.
+type Estilo = PuestaEnEscena -> PuestaEnEscena
+
+-- Gritar: aumenta la potencia en un 50%
+
+gritar :: Estilo
+gritar = aumentarPotenciaEnPorcentaje 50
+
+-- Responder un acote: conociendo su efectividad, aumenta la potencia en un 20%, y además el público queda exaltado 
+-- si la respuesta fue efectiva, sino no lo queda.
+
+responderUnAcote :: Bool -> Estilo
+responderUnAcote efectividad = exaltarPublico efectividad . aumentarPotenciaEnPorcentaje 20 
+
+--intentarExaltarPublico :: Bool -> PuestaEnEscena -> PuestaEnEscena
+--intentarExaltarPublico efectividad puesta 
+--  | efectividad = exaltarPublico puesta
+--  | otherwise   = puesta
+
+-- Tirar técnicas: se refiere a cuando el artista deja en evidencia que puede lograr algún patrón en particular, 
+-- aumenta la potencia en un 10%, además el público se exalta si la estrofa cumple con dicho patrón, sino no.
+
+tirarTecnias :: Patron -> Estilo
+tirarTecnias patron = exaltarPublicoSiCumple' patron . aumentarPotenciaEnPorcentaje 10
+
+exaltarPublicoSiCumple :: Patron -> PuestaEnEscena -> PuestaEnEscena
+exaltarPublicoSiCumple patron puesta 
+  | patron (estrofa puesta) = exaltarPublico True puesta
+  | otherwise               = exaltarPublico False puesta
+
+exaltarPublicoSiCumple' :: Patron -> PuestaEnEscena -> PuestaEnEscena
+exaltarPublicoSiCumple' patron puesta = exaltarPublico (patron (estrofa puesta)) puesta
+--                                                     (Esto tira True o False)
+cumplePatron :: PuestaEnEscena -> Patron -> Bool
+cumplePatron puesta patron = patron (estrofa puesta)
+
+-- 4) Hacer que un artista se tire un freestyle a partir de la estrofa que quiere decir y el estilo que le quiera dar a su 
+-- puesta en escena. Para ello se parte siempre de una puesta base que tiene potencia 1 y el público tranquilo, 
+-- la que luego varía según el estilo utilizado.
+-- El resultado de que un artista se tire un freestyle es una puesta en escena.
+
+tirarFreestyle :: Artista -> Estrofa -> Estilo -> PuestaEnEscena
+tirarFreestyle artista estrofa estilo = estilo (puestaBase artista estrofa)
+
+puestaBase :: Artista -> Estrofa -> PuestaEnEscena
+puestaBase artista estrofa = UnaPuestaEnEscena False 1 estrofa artista
+
+-- JURADOS
+
+-- Se pide
+-- Definir el jurado alToke con los siguientes criterios:
+-- Si el freestyle (estrofa de la puesta) cumple con el patrón aabb, entonces suma 0.5 punto
+-- Si el freestyle (estrofa de la puesta) cumple con el patrón combinado de esdrújulas y simple entre 1 y 4, entonces suma 1 punto
+-- Si el público está exaltado, entonces suma 1 punto
+-- Si tiene una potencia mayor a 1.5, entonces suma 2 puntos
+
+type Criterio = PuestaEnEscena
+type Jurado = [Criterio]
+
+-- CRITERIOS --
+
+cumpleConAABB :: Criterio -> Number
+cumpleConAABB puesta  
+  | aabb (estrofa puesta) = 0.5
+  | otherwise             = 0
+
+alToke :: Jurado
+alToke = []
